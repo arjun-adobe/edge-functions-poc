@@ -14,6 +14,7 @@ governing permissions and limitations under the License.
 
 import * as response from './lib/response.js';
 import { log } from './lib/log.js';
+import { withCors, preflight } from './lib/cors.js';
 import { weatherHandler } from "./weather.js";
 
 addEventListener("fetch", (event) => event.respondWith(handleRequest(event)));
@@ -26,7 +27,10 @@ async function handleRequest(event) {
 
   try {
     // Route matching
-    if (url.pathname === "/" && req.method === "GET") {
+    if (req.method === "OPTIONS") {
+      // CORS / Chrome local-network preflight
+      finalResponse = preflight(req);
+    } else if (url.pathname === "/" && req.method === "GET") {
       finalResponse = new Response("Hello World from the edge!", { status: 200 });
     } else if (url.pathname === "/hello-world" && req.method === "GET") {
       finalResponse = new Response("Hello World from the edge!", { status: 200 });
@@ -39,6 +43,9 @@ async function handleRequest(event) {
     console.log(err);
     finalResponse = response.error();
   }
+
+  // Allow the bv-wknd-poc site (any branch) to read the response
+  finalResponse = withCors(req, finalResponse);
 
   // Log the request and response
   log(req, finalResponse);
